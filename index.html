@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The stylesheet that never leaves</title>
+<meta name="description" content="CSS chunking puts each page's CSS in the right order. A client-side router then stacks those chunks in the order your user clicks.">
+<meta name="theme-color" content="#0c0c0e">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The stylesheet that never leaves">
+<meta property="og:description" content="Why CSS chunking breaks styles after client-side navigation, and why a reload fixes it.">
+<meta property="og:url" content="https://jantimon.github.io/demo-css-load-order/">
+<meta property="og:image" content="https://jantimon.github.io/demo-css-load-order/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@jantimon">
+<meta name="author" content="Jan Nicklas">
+<link rel="canonical" href="https://jantimon.github.io/demo-css-load-order/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="assets/hero.webp">
+<link rel="stylesheet" href="styles.css">
+<script>document.documentElement.classList.add("js")</script>
+<script src="main.js" defer></script>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="intro">
+    <p class="kicker"><i class="tok home"></i><i class="tok blog"></i> CSS chunks × client-side routing</p>
+    <h1>The stylesheet<br><span>that never leaves</span></h1>
+    <p class="dek">Your bundler puts each page's CSS in the right order. Your router then stacks those files in the order your user clicks.</p>
+    <p class="device-note"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 14h5M8 11.5V14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>The interactive figures work best on a desktop screen.</p>
+  </header>
+
+  <div class="stack">
+  <section class="card" id="why">
+  <h2><span class="num">01</span>Why <em class="hi">split</em> CSS at all</h2>
+  <p>The browser paints nothing until the CSS in <code>&lt;head&gt;</code> has loaded. A smaller file means an earlier first paint.</p>
+
+  <figure class="fig wide" id="race" aria-label="Timeline: a 400 KB stylesheet delays first paint to 1.3 seconds, a 30 KB chunk paints at 0.38 seconds">
+    <div class="fig-head">
+      <span>Fig. 1 · Time to first paint</span>
+      <button class="btn" id="raceReplay" type="button"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Replay</button>
+    </div>
+    <div class="race-grid">
+      <div></div>
+      <div class="axis" id="axis"></div>
+      <div></div>
+
+      <div class="lane lane-all" data-css="1.0">
+        <div class="lane-label"><b>all.css</b><span>400 KB · CSS for every page</span></div>
+        <div class="track"><i class="seg html"></i><i class="seg css"></i><i class="head"></i><i class="paint"><span>paint <b>1.3 s</b></span></i></div>
+        <div class="thumb"><div class="th-page"></div></div>
+      </div>
+
+      <div class="lane lane-chunk" data-css="0.075">
+        <div class="lane-label"><b>home.css</b><span>30 KB · CSS for this page</span></div>
+        <div class="track"><i class="seg html"></i><i class="seg css"></i><i class="head"></i><i class="paint"><span>paint <b>0.38 s</b></span></i></div>
+        <div class="thumb"><div class="th-page"></div></div>
+      </div>
+    </div>
+    <figcaption class="note"><span class="key html"></span>HTML <span class="key css"></span>CSS · simulated at 3.2 Mbit/s</figcaption>
+  </figure>
+
+  <p>So we split CSS per page. Good idea, keep it.</p>
+  </section>
+
+  <section class="card" id="order">
+  <h2><span class="num">02</span>Simple <em class="hi">Example</em> with CSS Splitting</h2>
+  <p>Both pages render the same <code>&lt;Header&gt;</code>. On the home page it sits on top of the hero image.</p>
+
+  <figure class="fig wide build" id="build" aria-label="Home.tsx imports Header.tsx, which imports header.css, and hero.css. Blog.tsx imports Header.tsx. The bundler copies header.css into both home.css and blog.css.">
+    <div class="fig-head">
+      <span>Fig. 2 · Source → CSS chunks</span>
+      <button class="btn" id="buildReplay" type="button"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Replay</button>
+    </div>
+
+    <div class="lane2">
+      <div class="lane-src">
+        <div class="route">route <b>/</b></div>
+        <div class="chain">
+          <span class="chip">Home.tsx</span><i class="arr"></i><span class="chip comp">Header.tsx</span><i class="arr"></i><span class="chip css shared" data-to="home-header">header.css</span>
+          <i class="elbow"></i><span class="chip css own" data-to="home-hero">hero.css</span>
+        </div>
+      </div>
+      <i class="arr long"></i>
+      <div class="file home out">
+        <div class="file-name"><i class="tok home"></i>home.css</div>
+<pre><span class="blk shared" id="home-header"><span class="c">/* src/header.css */</span>
+<span class="s">.header</span> {
+  <span class="p">position</span>: <span class="v">sticky</span>;
+  <span class="p">background</span>: <span class="v">white</span>;
+}</span><span class="blk own" id="home-hero"><span class="c">/* src/hero.css */</span>
+<span class="s">.header-over-hero</span> {
+  <span class="p">position</span>: <span class="v">absolute</span>;
+  <span class="p">background</span>: <span class="v">transparent</span>;
+  <span class="p">color</span>: <span class="v">white</span>;
+}</span></pre>
+      </div>
+      <i class="arr to-mini"></i>
+      <div class="mini" aria-hidden="true">
+        <div class="mini-bar"><i></i><i></i><i></i><span>emberridge.test<b>/</b></span></div>
+        <div class="viewport"><div class="site" data-page="home" data-pos="over" data-bg="clear" data-fg="light"><header class="s-header"><span class="s-logo"><svg viewBox="0 0 24 24"><path d="M1.5 20 9 8l4.2 6.4L16.4 10 22.5 20Z" fill="currentColor"/><circle cx="18" cy="4.6" r="2.1" fill="#f3a83b"/></svg>Ember Ridge</span><nav class="s-nav"><span>Trips</span><span>Blog</span><span>Shop</span></nav></header><section class="s-home"><div class="s-hero"><div><p class="s-eyebrow">Guided night hikes</p><p class="s-h">Walk the ridge<br>before sunrise</p><span class="s-cta">Book a trip</span></div></div></section></div></div>
+      </div>
+    </div>
+
+    <div class="lane2">
+      <div class="lane-src">
+        <div class="route">route <b>/blog</b></div>
+        <div class="chain">
+          <span class="chip">Blog.tsx</span><i class="arr"></i><span class="chip comp">Header.tsx</span><i class="arr"></i><span class="chip css shared" data-to="blog-header">header.css</span>
+        </div>
+      </div>
+      <i class="arr long"></i>
+      <div class="file blog out">
+        <div class="file-name"><i class="tok blog"></i>blog.css</div>
+<pre><span class="blk shared" id="blog-header"><span class="c">/* src/header.css */</span>
+<span class="s">.header</span> {
+  <span class="p">position</span>: <span class="v">sticky</span>;
+  <span class="p">background</span>: <span class="v">white</span>;
+}</span></pre>
+      </div>
+      <i class="arr to-mini"></i>
+      <div class="mini" aria-hidden="true">
+        <div class="mini-bar"><i></i><i></i><i></i><span>emberridge.test<b>/blog</b></span></div>
+        <div class="viewport"><div class="site" data-page="blog" data-pos="bar" data-bg="white" data-fg="dark"><header class="s-header"><span class="s-logo"><svg viewBox="0 0 24 24"><path d="M1.5 20 9 8l4.2 6.4L16.4 10 22.5 20Z" fill="currentColor"/><circle cx="18" cy="4.6" r="2.1" fill="#f3a83b"/></svg>Ember Ridge</span><nav class="s-nav"><span>Trips</span><span>Blog</span><span>Shop</span></nav></header><section class="s-blog"><p class="s-eyebrow">Journal</p><p class="s-h">Field notes</p><div class="s-cards"><div class="s-card"><i style="background-position:18% 72%"></i><b>Packing for a 3 a.m. start</b></div><div class="s-card"><i style="background-position:56% 64%"></i><b>Reading the ridge in the dark</b></div><div class="s-card"><i style="background-position:86% 58%"></i><b>Headlamps, tested</b></div></div></section></div></div>
+      </div>
+    </div>
+  </figure>
+
+  <p>Everything looks great: the bundler split the CSS into two files, and each one works on its own.</p>
+  </section>
+
+  <section class="card" id="click">
+  <h2><span class="num">03</span>Now let's <em class="hi">click through</em> the site</h2>
+  <figure class="fig wide stage" id="stage" aria-label="Animation: home, then blog, then home again, with the browser on the left and DevTools on the right">
+    <div class="fig-head">
+      <span>Fig. 3 · Home → Blog → Home</span>
+      <span class="hint">← → to step · space to play</span>
+    </div>
+
+    <div class="stage-grid">
+      <div class="browser" id="browser">
+        <div class="chrome">
+          <div class="lights"><i></i><i></i><i></i></div>
+          <button class="reload" data-target="reload" type="button" tabindex="-1" aria-hidden="true"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M13 8a5 5 0 1 1-1.6-3.66M13 2.5v3h-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <div class="address"><svg viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span class="host">emberridge.test</span><span class="path" id="path">/</span><i class="progress"></i></div>
+        </div>
+
+        <div class="viewport">
+          <div class="site" id="site" data-page="home" data-pos="over" data-bg="clear" data-fg="light" aria-hidden="true">
+            <header class="s-header">
+              <span class="s-logo" data-target="logo">
+                <svg viewBox="0 0 24 24"><path d="M1.5 20 9 8l4.2 6.4L16.4 10 22.5 20Z" fill="currentColor"/><circle cx="18" cy="4.6" r="2.1" fill="#f3a83b"/></svg>
+                Ember Ridge
+              </span>
+              <nav class="s-nav"><span>Trips</span><span data-target="nav-blog">Blog</span><span>Shop</span></nav>
+            </header>
+
+            <section class="s-home">
+              <div class="s-hero">
+                <div>
+                  <p class="s-eyebrow">Guided night hikes</p>
+                  <p class="s-h">Walk the ridge<br>before sunrise</p>
+                  <span class="s-cta">Book a trip</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="s-blog">
+              <p class="s-eyebrow">Journal</p>
+              <p class="s-h">Field notes</p>
+              <div class="s-cards">
+                <div class="s-card"><i style="background-position:18% 72%"></i><b>Packing for a 3 a.m. start</b><span>6 min read</span></div>
+                <div class="s-card"><i style="background-position:56% 64%"></i><b>Reading the ridge in the dark</b><span>4 min read</span></div>
+                <div class="s-card"><i style="background-position:86% 58%"></i><b>Headlamps, tested</b><span>8 min read</span></div>
+              </div>
+            </section>
+          </div>
+          <div class="flash"></div>
+        </div>
+
+        <div class="cursor" id="cursor" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 2v17l4.6-4.1 3 6.6 2.6-1.2-3-6.4H17Z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+      </div>
+
+      <div class="devtools" aria-hidden="true">
+        <div class="dt-tabs"><span class="on">Elements</span><span>Console</span><span>Sources</span><span>Network</span></div>
+        <div class="dt-dom">
+          <div class="ln"><span class="tw">▾</span><span class="tg">&lt;head&gt;</span></div>
+          <div id="links"></div>
+          <div class="ln"><span class="tg">&lt;/head&gt;</span></div>
+          <div class="ln"><span class="tw">▾</span><span class="tg">&lt;body&gt;</span></div>
+          <div class="ln i1 selected"><span class="tw">▸</span><span class="tg">&lt;header</span> <span class="at">class</span>=<span class="av">"<span id="hdrClass">header header-over-hero</span>"</span><span class="tg">&gt;</span>…<span class="tg">&lt;/header&gt;</span> <span class="eq">== $0</span></div>
+        </div>
+        <div class="dt-tabs sub"><span class="on">Styles</span><span>Computed</span><span>Layout</span></div>
+        <div class="dt-filter"><span>⏷ Filter</span><span>:hov .cls +</span></div>
+        <div class="dt-rules">
+          <div class="rule static"><div class="rule-in"><div class="rule-body"><div class="rh"><span><span class="sel">element.style</span> {</span></div><div>}</div></div></div></div>
+          <div id="ruleList"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage-foot">
+      <p class="caption" id="caption" aria-live="polite"></p>
+      <div class="controls">
+        <button class="btn icon" id="prev" type="button" aria-label="Previous step"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="btn icon primary" id="play" type="button" aria-label="Play"><svg class="i-play" viewBox="0 0 16 16" width="14" height="14"><path d="M4.5 2.8v10.4L13 8Z" fill="currentColor"/></svg><svg class="i-pause" viewBox="0 0 16 16" width="14" height="14"><path d="M4 3h3v10H4zM9 3h3v10H9z" fill="currentColor"/></svg><svg class="i-replay" viewBox="0 0 16 16" width="14" height="14"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="btn icon" id="next" type="button" aria-label="Next step"><svg viewBox="0 0 16 16" width="14" height="14"><path d="m6 3 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="sdots" id="dots"></div>
+      </div>
+    </div>
+  </figure>
+  </section>
+
+  <section class="card" id="hard">
+  <h2><span class="num">04</span>Why this is so <em class="hi">hard</em> to fix</h2>
+
+  <h3><span>1</span>Importing is not rendering</h3>
+  <p>The CSS import runs once, when the module first loads. The function runs on every render. Nothing connects the two, so when <code>&lt;Home /&gt;</code> unmounts, there is no code that could remove home.css.</p>
+
+  <figure class="fig wide why" id="whyImport" aria-label="Home.tsx: the CSS import runs once, the Home function runs on every render, and nothing runs for the CSS when Home unmounts.">
+    <div class="fig-head">
+      <span>Fig. 4 · One file, two lifetimes</span>
+      <button class="btn" id="importReplay" type="button"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.8-4.07M2.5 2.5v3h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Replay</button>
+    </div>
+    <div class="life">
+      <div class="file life-code">
+        <div class="file-name">Home.tsx</div>
+<pre><span class="cl" data-l="import"><span class="k">import</span> <span class="q">"./home.css"</span>;<em class="runs" id="runsImport">runs 0×</em></span><span class="cl"> </span><span class="cl" data-l="render"><span class="k">export function</span> Home() {<em class="runs" id="runsRender">runs 0×</em></span><span class="cl" data-l="render">  <span class="k">return</span> <span class="t">&lt;Hero</span> <span class="t">/&gt;</span>;</span><span class="cl" data-l="render">}</span></pre>
+      </div>
+      <ol class="life-log" id="lifeLog" aria-live="polite"></ol>
+    </div>
+  </figure>
+
+  <h3><span>2</span>Shared CSS lands in the cascade twice</h3>
+  <p>Inside home.css, the bundler puts header.css before hero.css, as it should. But blog.css carries its own copy of header.css. With both chunks loaded, that copy can end up after hero.css, and the last rule wins.</p>
+
+  <figure class="fig wide why" id="whyOrder" aria-label="Swapping the order of the two link tags decides whether the header looks right or broken.">
+    <div class="fig-head">
+      <span>Fig. 5 · What the browser sees</span>
+      <button class="btn" id="swap" type="button"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M5 2v12M5 14l-3-3M5 14l3-3M11 14V2M11 2 8 5M11 2l3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Swap order</button>
+    </div>
+    <div class="ord">
+      <div class="ord-left">
+      <div class="ord-head">
+        <div class="ln"><span class="tg">&lt;head&gt;</span></div>
+        <div class="ord-links" id="ordLinks">
+          <div class="ln i1" data-f="home"><span class="tg">&lt;link</span> <span class="at">href</span>=<span class="av">"home.css"</span><span class="tg">&gt;</span><i class="tok home"></i><span class="inside"><span class="in-c shared">header.css</span><span class="in-c own">hero.css</span></span></div>
+          <div class="ln i1" data-f="blog"><span class="tg">&lt;link</span> <span class="at">href</span>=<span class="av">"blog.css"</span><span class="tg">&gt;</span><i class="tok blog"></i><span class="inside"><span class="in-c shared">header.css</span></span></div>
+        </div>
+        <div class="ln"><span class="tg">&lt;/head&gt;</span></div>
+      </div>
+      <div class="seq"><span class="seq-l">Order the browser sees</span><div class="seq-chips" id="seq"></div></div>
+      </div>
+      <div class="ord-arrow" aria-hidden="true">→</div>
+      <div class="ord-out">
+        <div class="opv" id="pv" aria-hidden="true"><div class="opv-hero"></div><div class="opv-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 20 9 8l4.2 6.4L16.4 10 22.5 20Z" fill="currentColor"/><circle cx="18" cy="4.6" r="2.1" fill="#f3a83b"/></svg>Ember Ridge</div></div>
+        <p class="ord-win" id="ordWin"></p>
+      </div>
+    </div>
+    <div class="ord-foot"><button class="linkbtn" id="layerOpen" type="button">@layer can't fix that →</button></div>
+  </figure>
+
+  <h3><span>3</span>A priority system would need the whole import graph</h3>
+  <p>Say CSS let a bundler give each file a priority, so a file always beats the files it imports. To compute that, the bundler needs the import graph of every page. One new import deep down changes the priority of every file above it.</p>
+
+  <figure class="fig wide why" id="whyRank" aria-label="Table of files, their imports and the CSS priority each would need. Adding one import to Header.tsx raises the priority of every file above it.">
+    <div class="fig-head">
+      <span>Fig. 6 · Priority from the import graph</span>
+      <button class="btn" id="addImport" type="button">+ Header.tsx imports Logo.tsx</button>
+    </div>
+    <table class="rank">
+      <thead><tr><th>File</th><th>Imports</th><th>CSS priority</th></tr></thead>
+      <tbody id="rankBody"></tbody>
+    </table>
+  </figure>
+  </section>
+  </div>
+
+  <footer class="about wide">
+    <div class="about-me">
+      <p class="about-k">Written by</p>
+      <p class="about-name">Jan Nicklas <span>@jantimon</span></p>
+      <p>Feel free to reach out, I'd love to hear from you.</p>
+      <ul class="social">
+        <li><a href="https://bsky.app/profile/jantimon.bsky.social"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M3.5 2.2C5.3 3.5 7.3 6.3 8 7.8c.7-1.5 2.7-4.3 4.5-5.6 1.3-1 3.5-1.7 3.5.7 0 .5-.3 4-.4 4.6-.6 2-2.6 2.5-4.4 2.2 3.1.5 3.9 2.3 2.2 4-3.3 3.3-4.7-.8-5.1-1.9L8 11.1l-.3.7c-.4 1.1-1.8 5.2-5.1 1.9-1.7-1.7-.9-3.5 2.2-4-1.8.3-3.8-.2-4.4-2.2C.3 6.9 0 3.4 0 2.9 0 .5 2.2 1.2 3.5 2.2z"/></svg>Bluesky</a></li>
+        <li><a href="https://x.com/jantimon"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M12.2 1h2.3L9.5 6.8 15.4 15h-4.6L7.2 10.2 3 15H.7l5.4-6.2L.4 1h4.7l3.3 4.4L12.2 1zm-.8 12.6h1.3L4.6 2.3H3.2l8.2 11.3z"/></svg>X</a></li>
+        <li><a href="https://github.com/jantimon"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.49c-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></li>
+      </ul>
+    </div>
+    <div class="about-src">
+      <p class="about-k">Sources</p>
+      <ul>
+        <li><a href="https://www.w3.org/TR/css-cascade-5/">CSS Cascading and Inheritance Level 5</a> <span>W3C</span></li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity">Specificity</a> <span>MDN</span></li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@layer">@layer</a> <span>MDN</span></li>
+        <li><a href="https://web.dev/articles/critical-rendering-path/render-blocking-css">Render-blocking CSS</a> <span>web.dev</span></li>
+        <li><a href="https://github.com/jantimon/demo-css-load-order">Repo for this Article</a> <span>GitHub</span></li>
+      </ul>
+    </div>
+  </footer>
+</main>
+
+<dialog class="modal" id="layerDialog" aria-labelledby="layerTitle">
+  <div class="modal-head">
+    <h3 id="layerTitle">Why <code>@layer</code> can't fix it</h3>
+    <button class="btn icon" id="layerClose" type="button" aria-label="Close"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+  <p>Layers are compared before specificity. Any unlayered rule beats every layered rule, even a more specific one. Move shared CSS into a layer, and its state rules start to lose.</p>
+  <div class="modal-files">
+    <div class="file">
+      <div class="file-name">base.css</div>
+<pre><span class="a">@layer</span> base {
+  <span class="s">.btn</span> { <span class="p">background</span>: <span class="v">SlateBlue</span>; }
+  <span class="s">.btn:disabled</span> {
+    <span class="p">background</span>: <span class="v">Gainsboro</span>;
+    <span class="p">color</span>: <span class="v">DimGray</span>;
+  }
+}</pre>
+    </div>
+    <div class="file">
+      <div class="file-name">special.css · unlayered</div>
+<pre><span class="s">.btn-hero</span> { <span class="p">background</span>: <span class="v">Crimson</span>; }</pre>
+      <div class="file-name">markup</div>
+<pre><span class="t">&lt;button</span> <span class="a">class</span>=<span class="q">"btn btn-hero"</span> <span class="a">disabled</span><span class="t">&gt;</span></pre>
+    </div>
+  </div>
+  <div class="ba">
+    <div><span class="ba-l">Expected</span><span class="demo-btn ok">Add to cart</span></div>
+    <div><span class="ba-l bad">Actual</span><span class="demo-btn bad">Add to cart</span></div>
+  </div>
+  <p class="muted">And to give each page its own layer, the bundler would have to sort every file into the right layer. That is problem 3 again.</p>
+</dialog>
+</body>
+</html>
