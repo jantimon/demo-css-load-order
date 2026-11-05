@@ -166,8 +166,9 @@ code {
 /* ---------- buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  height: 34px; padding: 0 12px;
-  font: 500 12.5px/1 var(--mono);
+  min-height: 34px; padding: 6px 12px;
+  font: 500 12.5px/1.3 var(--mono);
+  text-align: center;
   color: var(--text);
   background: var(--panel2);
   border: 1px solid var(--line2);
@@ -178,7 +179,7 @@ code {
 .btn:hover { background: #24242b; }
 .btn:active { transform: translateY(1px); }
 .btn:focus-visible { outline: 2px solid var(--blog); outline-offset: 2px; }
-.btn.icon { width: 36px; padding: 0; }
+.btn.icon { width: 36px; height: 34px; padding: 0; }
 .btn.primary { background: var(--text); color: #111; border-color: transparent; }
 .btn.primary:hover { background: #fff; }
 .btn:disabled { opacity: .35; cursor: default; }
@@ -993,3 +994,28 @@ h2 .hi { font-style: normal; color: var(--blog); }
 }
 
 .device-note { display: flex; align-items: center; gap: 8px; margin: 22px 0 0; font: 12.5px/1.4 var(--mono); color: var(--faint); }
+
+/* a wide figure must never widen the page */
+.wrap > *, .card > * { min-width: 0; }
+
+/* figure titles that wrap onto two lines */
+.fig-head > span:first-child { line-height: 1.5; }
+
+/* phones */
+@media (max-width: 640px) {
+  .intro { padding: 48px 0 32px; }
+  .kicker { letter-spacing: .1em; font-size: 11px; }
+  h1 { font-size: clamp(36px, 10.5vw, 46px); }
+  .dek { font-size: 17px; }
+  .device-note { font-size: 11.5px; }
+  .rank th { padding: 0 6px 8px; }
+  .rank td { padding: 8px 6px; }
+  .rank .chip { padding: 5px 7px; font-size: 11px; }
+  .rank .prio span { font-size: 16px; }
+}
+@media (max-width: 380px) {
+  .chain { grid-template-columns: auto 16px auto 16px auto; }
+  .chain .chip { padding: 6px 7px; font-size: 11px; }
+  .elbow { margin-left: 22px; }
+}
+.fig-head .btn { flex: none; max-width: 50%; }
